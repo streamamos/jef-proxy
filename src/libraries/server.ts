@@ -574,8 +574,15 @@ export async function proxyM3U8(url: string, headers: any, res: http.ServerRespo
             if (line.startsWith("#")) {
                 if (line.startsWith("#EXT-X-KEY:")) {
                     const regex = /https?:\/\/[^\""\s]+/g;
-                    const url = `${web_server_url}${"/ts-proxy?url=" + encodeURIComponent(regex.exec(line)?.[0] ?? "") + "&headers=" + encodeURIComponent(JSON.stringify(headers))}`;
-                    newLines.push(line.replace(regex, url));
+                    const keyUrl = `${web_server_url}${"/ts-proxy?url=" + encodeURIComponent(regex.exec(line)?.[0] ?? "") + "&headers=" + encodeURIComponent(JSON.stringify(headers))}`;
+                    newLines.push(line.replace(regex, keyUrl));
+                } else if (line.startsWith("#EXT-X-MEDIA:") && line.includes('URI="')) {
+                    // Rewrite the URI attribute in audio/subtitle/video media tags
+                    const newLine = line.replace(/URI="([^"]+)"/, (match, relativeUri) => {
+                        const absoluteUri = new URL(relativeUri, url).href;
+                        return `URI="${web_server_url}/m3u8-proxy?url=${encodeURIComponent(absoluteUri)}&headers=${encodeURIComponent(JSON.stringify(headers))}"`;
+                    });
+                    newLines.push(newLine);
                 } else {
                     newLines.push(line);
                 }
