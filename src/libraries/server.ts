@@ -573,9 +573,12 @@ export async function proxyM3U8(url: string, headers: any, res: http.ServerRespo
         for (const line of lines) {
             if (line.startsWith("#")) {
                 if (line.startsWith("#EXT-X-KEY:")) {
-                    const regex = /https?:\/\/[^\""\s]+/g;
-                    const keyUrl = `${web_server_url}${"/ts-proxy?url=" + encodeURIComponent(regex.exec(line)?.[0] ?? "") + "&headers=" + encodeURIComponent(JSON.stringify(headers))}`;
-                    newLines.push(line.replace(regex, keyUrl));
+                    const newLine = line.replace(/URI="([^"]+)"/, (match, keyUri) => {
+                        const absoluteKeyUrl = new URL(keyUri, url).href;
+                        const proxiedUrl = `${web_server_url}/ts-proxy?url=${encodeURIComponent(absoluteKeyUrl)}&headers=${encodeURIComponent(JSON.stringify(headers))}`;
+                        return `URI="${proxiedUrl}"`;
+                    });
+                    newLines.push(newLine);
                 } else if (line.startsWith("#EXT-X-MEDIA:") && line.includes('URI="')) {
                     // Rewrite the URI attribute in audio/subtitle/video media tags
                     const newLine = line.replace(/URI="([^"]+)"/, (match, relativeUri) => {
@@ -609,9 +612,12 @@ export async function proxyM3U8(url: string, headers: any, res: http.ServerRespo
         for (const line of lines) {
             if (line.startsWith("#")) {
                 if (line.startsWith("#EXT-X-KEY:")) {
-                    const regex = /https?:\/\/[^\""\s]+/g;
-                    const url = `${web_server_url}${"/ts-proxy?url=" + encodeURIComponent(regex.exec(line)?.[0] ?? "") + "&headers=" + encodeURIComponent(JSON.stringify(headers))}`;
-                    newLines.push(line.replace(regex, url));
+                    const newLine = line.replace(/URI="([^"]+)"/, (match, keyUri) => {
+                        const absoluteKeyUrl = new URL(keyUri, url).href;
+                        const proxiedUrl = `${web_server_url}/ts-proxy?url=${encodeURIComponent(absoluteKeyUrl)}&headers=${encodeURIComponent(JSON.stringify(headers))}`;
+                        return `URI="${proxiedUrl}"`;
+                    });
+                    newLines.push(newLine);
                 } else {
                     newLines.push(line);
                 }
