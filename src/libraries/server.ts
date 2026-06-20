@@ -579,8 +579,14 @@ export async function proxyM3U8(url: string, headers: any, res: http.ServerRespo
                         return `URI="${proxiedUrl}"`;
                     });
                     newLines.push(newLine);
+                } else if (line.startsWith("#EXT-X-MAP:")) {
+                    const newLine = line.replace(/URI="([^"]+)"/, (match, mapUri) => {
+                        const absoluteMapUrl = new URL(mapUri, url).href;
+                        const proxiedUrl = `${web_server_url}/ts-proxy?url=${encodeURIComponent(absoluteMapUrl)}&headers=${encodeURIComponent(JSON.stringify(headers))}`;
+                        return `URI="${proxiedUrl}"`;
+                    });
+                    newLines.push(newLine);
                 } else if (line.startsWith("#EXT-X-MEDIA:") && line.includes('URI="')) {
-                    // Rewrite the URI attribute in audio/subtitle/video media tags
                     const newLine = line.replace(/URI="([^"]+)"/, (match, relativeUri) => {
                         const absoluteUri = new URL(relativeUri, url).href;
                         return `URI="${web_server_url}/m3u8-proxy?url=${encodeURIComponent(absoluteUri)}&headers=${encodeURIComponent(JSON.stringify(headers))}"`;
@@ -618,14 +624,18 @@ export async function proxyM3U8(url: string, headers: any, res: http.ServerRespo
                         return `URI="${proxiedUrl}"`;
                     });
                     newLines.push(newLine);
+                } else if (line.startsWith("#EXT-X-MAP:")) {
+                    const newLine = line.replace(/URI="([^"]+)"/, (match, mapUri) => {
+                        const absoluteMapUrl = new URL(mapUri, url).href;
+                        const proxiedUrl = `${web_server_url}/ts-proxy?url=${encodeURIComponent(absoluteMapUrl)}&headers=${encodeURIComponent(JSON.stringify(headers))}`;
+                        return `URI="${proxiedUrl}"`;
+                    });
+                    newLines.push(newLine);
                 } else {
                     newLines.push(line);
                 }
             } else {
                 const uri = new URL(line, url);
-                // CORS is needed since the TS files are not on the same domain as the client.
-                // This replaces each TS file to use a TS proxy with the headers attached.
-                // So each TS request will use the headers inputted to the proxy
                 newLines.push(`${web_server_url}${"/ts-proxy?url=" + encodeURIComponent(uri.href) + "&headers=" + encodeURIComponent(JSON.stringify(headers))}`);
             }
         }
